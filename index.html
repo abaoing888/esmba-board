@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESMBA Workshop Board</title>
+<style>
+  :root{--navy:#0b2545;--blue:#2f6fb0;--sky:#5aa9e6;--ink:#eaf2fb;--muted:#9fb8d6;
+    --card:#122c4f;--line:#1e4272;--green:#22c55e;--amber:#f5b301;--red:#ef4444;--purple:#a855f7;}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+  html,body{height:100%;width:100%;background:var(--navy);color:var(--ink);overflow:hidden}
+  body{display:flex;flex-direction:column;background:radial-gradient(1200px 700px at 80% -10%,#173863,var(--navy))}
+  header{display:flex;align-items:center;justify-content:space-between;padding:1.1vh 2vw;
+    background:linear-gradient(90deg,#08192f,#13315c);border-bottom:3px solid var(--sky)}
+  .brand{display:flex;align-items:center;gap:1.2vw}
+  .logo{width:3.6vw;height:3.6vw;min-width:46px;min-height:46px;border-radius:12px;
+    background:linear-gradient(135deg,var(--sky),var(--blue));display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:1.6vw;color:#04121f}
+  .brand h1{font-size:1.9vw;font-weight:800}.brand span{display:block;font-size:.85vw;color:var(--sky);font-weight:600;letter-spacing:3px}
+  .rightbar{display:flex;align-items:center;gap:2vw}
+  .weather{text-align:right;line-height:1.1}.weather .t{font-size:2.2vw;font-weight:800}.weather .d{font-size:.85vw;color:var(--muted)}
+  .clock{text-align:right}.clock .time{font-size:2.6vw;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .clock .date{font-size:1vw;color:var(--muted);font-weight:600}
+  main{flex:1;position:relative;padding:1.6vh 2vw}
+  .scene{position:absolute;inset:1.6vh 2vw;opacity:0;transform:translateY(14px);transition:opacity .6s,transform .6s;
+    pointer-events:none;display:flex;flex-direction:column}
+  .scene.active{opacity:1;transform:none}
+  .scene-title{display:flex;align-items:center;gap:1vw;margin-bottom:1.4vh}
+  .scene-title h2{font-size:1.7vw;font-weight:800}.scene-title .pill{font-size:.8vw;background:var(--blue);padding:.4vh 1vw;border-radius:999px;font-weight:700;color:#04121f}
+  .scene-title .spacer{flex:1}.scene-title .hint{font-size:.9vw;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.1vw;overflow:hidden}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.1vh 1vw;display:flex;flex-direction:column;gap:.7vh}
+  .card .top{display:flex;justify-content:space-between;align-items:baseline}
+  .job{font-size:1.15vw;font-weight:800;color:#fff}.client{font-size:.72vw;color:var(--sky);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  .pkg{font-size:.92vw;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar{height:1.2vh;background:#0a1e39;border-radius:999px;overflow:hidden;margin-top:.3vh}
+  .bar>span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--sky),var(--green))}
+  .meta{display:flex;justify-content:space-between;font-size:.72vw;color:var(--muted)}.pct{font-size:1vw;font-weight:800}
+  .status{font-size:.7vw;font-weight:700;padding:.2vh .7vw;border-radius:6px;text-transform:uppercase}
+  .s-notstarted{background:#334155;color:#cbd5e1}.s-progress{background:rgba(245,179,1,.18);color:var(--amber)}.s-done{background:rgba(34,197,94,.18);color:var(--green)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:1.4vw;flex:1;overflow:hidden}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.6vh 1.4vw;display:flex;flex-direction:column}
+  .panel h3{font-size:1.25vw;margin-bottom:1.2vh;color:#fff;display:flex;align-items:center;gap:.6vw}.panel h3 .ico{font-size:1.5vw}
+  .list{display:flex;flex-direction:column;gap:1vh}
+  .row{display:flex;align-items:center;gap:1vw;font-size:1.05vw;padding:.9vh 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:none}
+  .row .tag{font-weight:800;color:var(--sky);min-width:7vw}.row .txt{flex:1;color:var(--ink)}.row .when{color:var(--muted);font-size:.9vw;font-weight:700}
+  .safety{align-items:center;justify-content:center;text-align:center}
+  .safety .big{font-size:8vw;font-weight:800;line-height:1;color:var(--green)}.safety .lbl{font-size:1.2vw;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1vh}
+  .toolbox{margin-top:2vh;background:#0a1e39;border-radius:12px;padding:1.4vh 1.2vw;width:100%}
+  .toolbox .t{font-size:.85vw;color:var(--amber);font-weight:800;letter-spacing:2px}.toolbox .m{font-size:1.15vw;margin-top:.5vh}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:1vw}.kpi .box{background:#0a1e39;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4vh;padding:1.4vh 0}
+  .kpi .n{font-size:3.2vw;font-weight:800}.kpi .n.g{color:var(--green)}.kpi .n.b{color:var(--sky)}
+  .kpi .l{font-size:.85vw;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  footer{background:#08192f;border-top:2px solid var(--line);padding:.9vh 0;overflow:hidden;white-space:nowrap}
+  .ticker{display:inline-block;padding-left:100%;animation:scroll 38s linear infinite;font-size:1.05vw;font-weight:600}
+  .ticker b{color:var(--sky)}.ticker .sep{color:var(--blue);margin:0 1.5vw}
+  @keyframes scroll{to{transform:translateX(-100%)}}
+  .dots{position:absolute;bottom:1.2vh;left:50%;transform:translateX(-50%);display:flex;gap:.8vw}
+  .dots i{width:.9vw;height:.9vw;border-radius:50%;background:var(--line)}.dots i.on{background:var(--sky)}
+  .updated{position:absolute;bottom:1.4vh;right:2vw;font-size:.8vw;color:var(--muted)}
+</style></head>
+<body>
+<header>
+  <div class="brand"><div class="logo">E</div><div><h1>ESMBA ENGINEERING</h1><span>WORKSHOP BOARD</span></div></div>
+  <div class="rightbar">
+    <div class="weather"><div class="t" id="wxTemp">--&deg;</div><div class="d" id="wxDesc">Brendale</div></div>
+    <div class="clock"><div class="time" id="time">--:--</div><div class="date" id="date">&mdash;</div></div>
+  </div>
+</header>
+<main>
+  <section class="scene active" id="s1"><div class="scene-title"><h2>&#127959;&#65039; Job Progress</h2>
+    <span class="pill" id="jobcount">&mdash;</span><span class="spacer"></span><span class="hint">Live from Project Dashboard</span></div>
+    <div class="grid" id="grid"></div></section>
+  <section class="scene" id="s2"><div class="scene-title"><h2>&#128293; This Week in the Workshop</h2>
+    <span class="spacer"></span><span class="hint">Fabrication priorities</span></div>
+    <div class="cols"><div class="panel"><h3><span class="ico">&#9881;&#65039;</span> Fabricating Now</h3><div class="list" id="fablist"></div></div>
+    <div class="panel"><h3><span class="ico">&#128197;</span> Due This Week</h3><div class="list" id="duelist"></div></div></div></section>
+  <section class="scene" id="s3"><div class="scene-title"><h2>&#128666; Deliveries &amp; Dispatch</h2>
+    <span class="spacer"></span><span class="hint">Materials in &bull; Jobs out</span></div>
+    <div class="cols"><div class="panel"><h3><span class="ico">&#128229;</span> Incoming Materials</h3><div class="list" id="inlist"></div></div>
+    <div class="panel"><h3><span class="ico">&#128228;</span> Out Today</h3><div class="list" id="outlist"></div></div></div></section>
+  <section class="scene" id="s4"><div class="scene-title"><h2>&#129466; Safety, Targets &amp; Notices</h2>
+    <span class="spacer"></span><span class="hint">Updated weekly</span></div>
+    <div class="cols"><div class="panel safety"><div class="big" id="safeDays">--</div><div class="lbl">Days since last incident</div>
+      <div class="toolbox"><div class="t">TOOLBOX TALK</div><div class="m" id="toolbox">&mdash;</div></div></div>
+    <div class="panel"><h3><span class="ico">&#127919;</span> This Month</h3>
+      <div class="kpi"><div class="box"><div class="n g" id="kTonnes">--</div><div class="l">Tonnes fabricated</div></div>
+        <div class="box"><div class="n b" id="kJobs">--</div><div class="l">Jobs completed</div></div></div>
+      <h3 style="margin-top:1.6vh"><span class="ico">&#128226;</span> Notices</h3><div class="list" id="notices"></div></div></div></section>
+  <div class="dots"><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="updated" id="updated">updated &mdash;</div>
+</main>
+<footer><div class="ticker" id="ticker">Loading&hellip;</div></footer>
+<script>
+/* @@DATA_START@@  (Excel macro overwrites everything to @@DATA_END@@) */
+const PROJECTS = [
+{
+"projNo": "E004",
+"projName": "Moffat Beach Industrial Warehouse",
+"client": "Prekaro Projects",
+"pkgs": [
+{
+"jobNo": "E004-01",
+"pkg": "BLD 3&4",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E004-02",
+"pkg": "BLD 1&2 Roof",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E004-03",
+"pkg": "BLD 1&2 Mez",
+"status": "Not Started",
+"pct": 29,
+"fabStart": "",
+"fabFin": "",
+"coat": "Primed 5 D",
+"siteFin": " "
+},
+{
+"jobNo": "E004-04",
+"pkg": "BLD3&4 -Stair Stringers",
+"status": "Not Started",
+"pct": 15,
+"fabStart": "",
+"fabFin": "",
+"coat": "Primed 5 D",
+"siteFin": ""
+},
+{
+"jobNo": "E004-05",
+"pkg": "BLD1&2 Stair Stringers",
+"status": "Not Started",
+"pct": 7,
+"fabStart": "",
+"fabFin": "",
+"coat": "Primed 5 D",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E009",
+"projName": "1 & 3 Clay Street, West Ipswich",
+"client": "Visage Building Group",
+"pkgs": [
+{
+"jobNo": "E009-01",
+"pkg": "Stage 1",
+"status": "Not Started",
+"pct": 20,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E009-02",
+"pkg": "Stage 2",
+"status": "Not Started",
+"pct": 13,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E009-03",
+"pkg": "Stage 3",
+"status": "Not Started",
+"pct": 7,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E014",
+"projName": "The Point Hotel, Kangaroo Point",
+"client": "Unita",
+"pkgs": [
+{
+"jobNo": "E014-01",
+"pkg": "Ground Level",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E014-02",
+"pkg": "Level 11 (Stairs)",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E014-V001",
+"pkg": "Level 12 3D Laser scanning",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E014-V002",
+"pkg": "Ground Level Design Changes",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E016",
+"projName": "Griffith Uni \u2013 Queen St",
+"client": "FDC Construction",
+"pkgs": [
+{
+"jobNo": "E016-01",
+"pkg": "Door Framing ",
+"status": "Not Started",
+"pct": 20,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-02",
+"pkg": "Lift Frames",
+"status": "Not Started",
+"pct": 20,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-03",
+"pkg": "Skylight Stage ",
+"status": "Not Started",
+"pct": 13,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-04",
+"pkg": "Floor Infill ",
+"status": "Not Started",
+"pct": 13,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-05",
+"pkg": "Lintels ",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-06",
+"pkg": "Cooling Tower Design ",
+"status": "Not Started",
+"pct": 13,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-V004",
+"pkg": "Cooling Tower Supply and installation",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-V005",
+"pkg": "Catwalk Platform Modifications",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-V006",
+"pkg": "Skylight Supporting Brackets",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-V007",
+"pkg": "Additional Lintel",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E016-V003",
+"pkg": "PFC Support",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E017",
+"projName": "Swift Storage Greenbank",
+"client": "Total Construction",
+"pkgs": [
+{
+"jobNo": "E017-01",
+"pkg": "BLD A",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E017-02",
+"pkg": "BLD B",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E017-03",
+"pkg": "Stairs & Balustrade",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E020",
+"projName": "Bowen Commons",
+"client": "Prekaro Projects",
+"pkgs": [
+{
+"jobNo": "E020-01",
+"pkg": "Shop Drawings ",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E020-02",
+"pkg": "Structural Steel",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E022",
+"projName": "Future Space \u2013 Windsor",
+"client": "Prekaro Projects",
+"pkgs": [
+{
+"jobNo": "E022-01",
+"pkg": "Roof",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E022-02",
+"pkg": "Ground Level",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E022-03",
+"pkg": "Level 1",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E022-04",
+"pkg": "Stair Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E023",
+"projName": "85 Bundah Street, Camp Hill",
+"client": "Lancon QLD",
+"pkgs": [
+{
+"jobNo": "E023-01",
+"pkg": "Structural Steel",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E024",
+"projName": "UQ Boat Shed \u2014 Door Frames",
+"client": "Venn Constructions Pty Ltd",
+"pkgs": [
+{
+"jobNo": "E024-01",
+"pkg": "Door Frames",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E025",
+"projName": "Workshed South \u2014 Heathwood",
+"client": "Forma Projects",
+"pkgs": [
+{
+"jobNo": "E025-01",
+"pkg": "P1 \u2014 Building 1 \u2014 Roof / Awning Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-02",
+"pkg": "P2 \u2014 Building 2 \u2014 Roof / Awning Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-03",
+"pkg": "P3 \u2014 Building 3 \u2014 Roof / Awning Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-04",
+"pkg": "P4 \u2014 Casting Plates \u2014 All Buildings (35 off)",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-05",
+"pkg": "P5 \u2014 Building 1 \u2014 Mezzanine Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-06",
+"pkg": "P6 \u2014 Building 2 \u2014 Mezzanine Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-07",
+"pkg": "P7 \u2014 Building 3 \u2014 Mezzanine Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-08",
+"pkg": "P8 \u2014 Stair Framing \u2014 All Buildings (30 sets)",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-09",
+"pkg": "P9 \u2014 Walkway Framing",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-10",
+"pkg": "P10 \u2014 Structural Steel Shop Drawings",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-11",
+"pkg": "P11 \u2014 Panel Shop Drawings",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+},
+{
+"jobNo": "E025-12",
+"pkg": "P12 \u2014 Casting Plates",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E026",
+"projName": "UQ QEVC \u2014 Roof Steel Works",
+"client": "Fara",
+"pkgs": [
+{
+"jobNo": "E026-01",
+"pkg": "Roof Steel Works",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+},
+{
+"projNo": "E027",
+"projName": "HDG Structural Angles",
+"client": "Compass Construction Services",
+"pkgs": [
+{
+"jobNo": "E027-01",
+"pkg": "HDG Structural Angles",
+"status": "Not Started",
+"pct": 0,
+"fabStart": "",
+"fabFin": "",
+"coat": "",
+"siteFin": ""
+}
+]
+}
+];
+
+var BOARD = {
+  safetyDays:128, toolbox:"Grinder guards & face shields - check before every use.",
+  tonnesMonth:142, jobsMonth:9,
+  notices:["RDO this Friday - workshop closed","New forklift induction Wed 10am","Amenities upgrade starts next week"],
+  incoming:[{tag:"E016-03",txt:"Plate 20mm - Vulcan",when:"Today 1pm"},{tag:"E009-02",txt:"Purlins - Metroll",when:"Tomorrow"},{tag:"E004-01",txt:"Shaft/Steel - Southern",when:"Thu"}],
+  outgoing:[{tag:"E014-01",txt:"38 HDG assemblies + purlins",when:"5:00am truck"},{tag:"E016-05",txt:"Door frames to site",when:"11:00am"}],
+  ticker:["SAFETY FIRST - report all near misses","Keep walkways clear","Crane inspection due end of month"]
+};
+/* @@DATA_END@@ */
+var DATA_URL = "data.json";  // GitHub Pages serves this next to index.html; macro keeps it fresh
+var $=function(id){return document.getElementById(id);};
+function sc(s){s=(s||'').toLowerCase();return s.indexOf('complete')>=0||s.indexOf('done')>=0?'s-done':(s.indexOf('progress')>=0||s.indexOf('fab')>=0?'s-progress':'s-notstarted');}
+function fmt(d){if(!d)return '';var p=(''+d).split('-');return p.length===3?p[2]+'/'+p[1]:d;}
+function allJobs(){var j=[];PROJECTS.forEach(function(p){p.pkgs.forEach(function(k){var o={};for(var x in k)o[x]=k[x];o.projNo=p.projNo||'';o.client=p.client||'';j.push(o);});});return j;}
+function renderGrid(){var j=allJobs();$('jobcount').textContent=j.length+' active jobs';
+  j.sort(function(a,b){return b.pct-a.pct;});
+  $('grid').innerHTML=j.slice(0,16).map(function(x){return '<div class="card"><div class="top"><div class="job">'+x.jobNo+'</div><div class="pct">'+x.pct+'%</div></div><div class="client">'+(x.client||'&nbsp;')+'</div><div class="pkg">'+(x.pkg||'')+'</div><div class="bar"><span style="width:'+Math.max(3,x.pct)+'%"></span></div><div class="meta"><span class="status '+sc(x.status)+'">'+x.status+'</span><span>'+(x.fabFin?('Fab '+fmt(x.fabFin)):'')+'</span></div></div>';}).join('');}
+function renderWeek(){var j=allJobs();var fab=j.filter(function(x){return x.pct>0&&x.pct<100;}).slice(0,7);
+  $('fablist').innerHTML=(fab.length?fab:j.slice(0,6)).map(function(x){return '<div class="row"><span class="tag">'+x.jobNo+'</span><span class="txt">'+(x.pkg||'')+'</span><span class="when">'+x.pct+'%</span></div>';}).join('');
+  var due=j.filter(function(x){return x.fabFin;}).sort(function(a,b){return a.fabFin>b.fabFin?1:-1;}).slice(0,7);
+  $('duelist').innerHTML=(due.length?due:j.slice(0,6)).map(function(x){return '<div class="row"><span class="tag">'+x.jobNo+'</span><span class="txt">'+(x.pkg||'')+'</span><span class="when">'+(fmt(x.fabFin)||'TBC')+'</span></div>';}).join('');}
+function renderDeliveries(){$('inlist').innerHTML=BOARD.incoming.map(function(r){return '<div class="row"><span class="tag">'+r.tag+'</span><span class="txt">'+r.txt+'</span><span class="when">'+r.when+'</span></div>';}).join('');
+  $('outlist').innerHTML=BOARD.outgoing.map(function(r){return '<div class="row"><span class="tag">'+r.tag+'</span><span class="txt">'+r.txt+'</span><span class="when">'+r.when+'</span></div>';}).join('');}
+function renderSafety(){$('safeDays').textContent=BOARD.safetyDays;$('toolbox').textContent=BOARD.toolbox;
+  $('kTonnes').textContent=BOARD.tonnesMonth;$('kJobs').textContent=BOARD.jobsMonth;
+  $('notices').innerHTML=BOARD.notices.map(function(n){return '<div class="row"><span class="txt">&bull; '+n+'</span></div>';}).join('');}
+function renderTicker(){$('ticker').innerHTML=BOARD.ticker.map(function(t){return '<b>&#9670;</b> '+t;}).join('<span class="sep">|</span>');}
+function renderAll(){renderGrid();renderWeek();renderDeliveries();renderSafety();renderTicker();
+  $('updated').textContent='updated '+new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});}
+function loadData(){if(!DATA_URL){renderAll();return;}
+  fetch(DATA_URL+'?t='+Date.now()).then(function(r){return r.json();}).then(function(d){
+    if(d.PROJECTS)window.PROJECTS=d.PROJECTS;if(d.BOARD)BOARD=d.BOARD;renderAll();}).catch(function(){renderAll();});}
+function clock(){var d=new Date();$('time').textContent=d.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',hour12:false});
+  $('date').textContent=d.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+function weather(){var u='https://api.open-meteo.com/v1/forecast?latitude=-27.31&longitude=152.98&current=temperature_2m,weather_code&timezone=Australia%2FBrisbane';
+  fetch(u).then(function(r){return r.json();}).then(function(d){var c={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Drizzle',53:'Drizzle',61:'Rain',63:'Rain',65:'Heavy rain',80:'Showers',81:'Showers',95:'Storms',96:'Storms'};
+    $('wxTemp').innerHTML=Math.round(d.current.temperature_2m)+'&deg;';$('wxDesc').textContent='Brendale · '+(c[d.current.weather_code]||'');}).catch(function(){});}
+var scene=0,scenes=['s1','s2','s3','s4'],dots=document.querySelectorAll('.dots i');
+function rotate(){document.getElementById(scenes[scene]).classList.remove('active');dots[scene].classList.remove('on');
+  scene=(scene+1)%scenes.length;document.getElementById(scenes[scene]).classList.add('active');dots[scene].classList.add('on');}
+clock();loadData();weather();
+setInterval(clock,1000);setInterval(rotate,15000);setInterval(weather,900000);setInterval(loadData,180000);
+setTimeout(function(){location.reload();},1800000);
+</script></body></html>
