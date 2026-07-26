@@ -90,6 +90,9 @@
   .nrow{display:flex;gap:.6vw;font-size:1vw;padding:.35vh 0;align-items:baseline}
   .nrow .dot{color:var(--amber);font-weight:800}
   .updated{position:fixed;bottom:.6vh;right:1vw;font-size:.72vw;color:var(--muted);opacity:.7}
+  .jrow .pct{width:4.3vw}
+  .jrow .pct .asm{font-size:.62vw;color:#8fa3c4;font-weight:700;margin-left:.25vw}
+  .livedot{color:#3FA96A;font-size:.7vw;margin-left:.3vw;vertical-align:middle}
 </style></head>
 <body>
 <header>
@@ -167,6 +170,23 @@ var BOARD = {
 };
 /* @@DATA_END@@ */
 var DATA_URL = "data.json";
+/* ---- live clock feed (Supabase fab_progress) ---- */
+var CLOCK_URL = "https://ymcsgpzxcizrxvsqwxxr.supabase.co/rest/v1/fab_progress?select=*";
+var CLOCK_KEY = "sb_publishable_hDwWTrMBZL7SETLNZY6llw_eCYCVS87";
+var CLOCKMAP = {};
+function loadClock(){
+  fetch(CLOCK_URL,{headers:{apikey:CLOCK_KEY,Accept:"application/json"}})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      var m={};
+      (rows||[]).forEach(function(x){
+        if((+x.total_marks||0)>0){
+          m[x.job_no]={pct:+x.pct_complete||0,done:+x.completed_marks||0,total:+x.total_marks||0,hours:+x.hours_booked||0};
+        }
+      });
+      CLOCKMAP=m; renderAll();
+    }).catch(function(){});
+}
 var $=function(id){return document.getElementById(id);};
 
 /* ---- date helpers ---- */
@@ -185,7 +205,10 @@ function fmtWhen(s){ var dt=isoDate(s); if(!dt) return (s||''); return WD[dt.get
 function allJobs(){
   var j=[]; (PROJECTS||[]).forEach(function(p){ (p.pkgs||[]).forEach(function(k){
     var o={}; for(var x in k) o[x]=k[x];
-    o.projNo=p.projNo||''; o.projName=p.projName||''; o.client=p.client||''; j.push(o);
+    o.projNo=p.projNo||''; o.projName=p.projName||''; o.client=p.client||'';
+    var cm=CLOCKMAP[o.jobNo];
+    if(cm){ o.pct=cm.pct; o.clockDone=cm.done; o.clockTotal=cm.total; o.clockHours=cm.hours; o.clockLive=true; }
+    j.push(o);
   }); }); return j;
 }
 function isStarted(x){
@@ -202,10 +225,11 @@ function isComplete(x){ var st=(x.status||'').toLowerCase(); return (+x.pct||0)>
 /* ---- renderers ---- */
 function jobRow(x,showBar){
   var desc='<div class="desc"><div class="pj">'+(x.projName||x.projNo||'')+'</div><div class="pk">'+(x.pkg||'')+'</div></div>';
+  var pctTxt=(+x.pct||0)+'%'+(x.clockLive?' <span class="asm">'+x.clockDone+'/'+x.clockTotal+'</span>':'');
   var right = showBar
-    ? '<div class="prog"><div class="bar"><span style="width:'+Math.max(3,+x.pct||0)+'%"></span></div><div class="pct">'+(+x.pct||0)+'%</div></div>'
+    ? '<div class="prog"><div class="bar"><span style="width:'+Math.max(3,+x.pct||0)+'%"></span></div><div class="pct">'+pctTxt+'</div></div>'
     : '<span class="badge b-wait">Awaiting</span>';
-  return '<div class="jrow"><span class="tag">'+x.jobNo+'</span>'+desc+right+'</div>';
+  return '<div class="jrow"><span class="tag">'+x.jobNo+(x.clockLive?' <span class="livedot" title="live from clock">&#9679;</span>':'')+'</span>'+desc+right+'</div>';
 }
 function renderWork(){
   var j=allJobs().filter(isStarted).sort(function(a,b){return (+b.pct||0)-(+a.pct||0);});
@@ -278,9 +302,10 @@ function weather(){var u='https://api.open-meteo.com/v1/forecast?latitude=-27.31
   fetch(u).then(function(r){return r.json();}).then(function(d){var c={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Drizzle',53:'Drizzle',61:'Rain',63:'Rain',65:'Heavy rain',80:'Showers',81:'Showers',95:'Storms',96:'Storms'};
     $('wxTemp').innerHTML=Math.round(d.current.temperature_2m)+'&deg;';$('wxDesc').textContent='Brendale · '+(c[d.current.weather_code]||'');}).catch(function(){});}
 
-clock();loadData();weather();
+clock();loadData();loadClock();weather();
 setInterval(clock,1000);
-setInterval(loadData,300000);      /* refresh data every 5 min */
+setInterval(loadData,30000);       /* Excel data.json every 30 sec */
+setInterval(loadClock,30000);      /* live clock feed every 30 sec */
 setInterval(weather,900000);       /* weather every 15 min */
 setTimeout(function(){location.reload();},1800000); /* full reload every 30 min */
 </script></body></html>
