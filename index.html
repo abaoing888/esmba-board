@@ -211,12 +211,14 @@ function allJobs(){
     j.push(o);
   }); }); return j;
 }
+function parseD(s){ if(!s) return null; var d=new Date(String(s).slice(0,10)+"T00:00:00"); return isNaN(d)?null:d; }
+function todayMid(){ var t=new Date(); t.setHours(0,0,0,0); return t; }
 function isStarted(x){
+  if(isComplete(x)) return false;
+  var fs=parseD(x.fabStart);
+  if(fs && fs<=todayMid()) return true;            /* fabrication window has started */
+  if((+x.pct||0)>0) return true;                   /* or work already logged */
   var st=(x.status||'').toLowerCase();
-  if(st.indexOf('complete')>=0||st.indexOf('done')>=0) return false;
-  if((+x.pct||0)>=100) return false;
-  if((+x.pct||0)>0) return true;
-  if(x.fabStart) return true;
   if(st.indexOf('progress')>=0||st.indexOf('fab')>=0) return true;
   return false;
 }
@@ -232,7 +234,13 @@ function jobRow(x,showBar){
   return '<div class="jrow"><span class="tag">'+x.jobNo+(x.clockLive?' <span class="livedot" title="live from clock">&#9679;</span>':'')+'</span>'+desc+right+'</div>';
 }
 function renderWork(){
-  var j=allJobs().filter(isStarted).sort(function(a,b){return (+b.pct||0)-(+a.pct||0);});
+  var j=allJobs().filter(isStarted).sort(function(a,b){
+    var fa=parseD(a.fabFin), fb=parseD(b.fabFin);
+    if(fa&&fb&&(fa-fb)) return fa-fb;              /* earliest fab deadline first */
+    if(fa&&!fb) return -1;
+    if(fb&&!fa) return 1;
+    return (+b.pct||0)-(+a.pct||0);
+  });
   $('workCount').textContent=j.length;
   var cap=9, html=j.slice(0,cap).map(function(x){return jobRow(x,true);}).join('');
   if(j.length>cap) html+='<div class="more">+ '+(j.length-cap)+' more in progress</div>';
